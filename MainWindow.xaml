@@ -1,0 +1,101 @@
+﻿<Window x:Name="frmMain" x:Class="P99Auctions.Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="clr-namespace:P99Auctions.Client.Models"
+        mc:Ignorable="d"
+        Icon="Images/auctionPack.ico"
+        Title="P99 Auction House Assistant" Height="187" Width="371" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Closing="MainWindow_Closing"
+        Loaded="MainWindow_OnLoaded"
+        d:DataContext="{d:DesignInstance Type=models:MainWindowViewModel}">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_View Log File" Click="ViewLog_Click" />
+                <MenuItem Header="_Settings" Click="MenuFileSettings_Click" >
+                    <MenuItem.Icon>
+                        <Image Source="Images/settings16.png" Width="16" Height="16" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator HorizontalAlignment="Left"/>
+                <MenuItem Header="_Exit" Click="MenuFileClose_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Online Help" Click="MenuHelpOnline_Click"/>
+                <MenuItem Header="_About"/>
+            </MenuItem>
+        </Menu>
+        <StatusBar x:Name="stsMain" DockPanel.Dock="Bottom"  Visibility="{Binding Path=ApplicationControlVisibility, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            <StatusBarItem Grid.Column="0">
+                <Image Name="imgStatus" Source="{Binding Path=StatusImage, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+            </StatusBarItem>
+            <StatusBarItem Grid.Column="1">
+                <TextBlock   Text="{Binding Path=StatusText, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+            </StatusBarItem>
+            <Separator Grid.Column="2" Visibility="{Binding Path=ShowProgressBar, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+            <StatusBarItem Grid.Column="3" Visibility="{Binding Path=ShowProgressBar, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Width="100" >
+                <ProgressBar IsIndeterminate="{Binding Path=ProgressInfinite, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Value="{Binding Path=ProgressValue, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Width="90" Height="16"  Minimum="0" Maximum="100" />
+            </StatusBarItem>
+        </StatusBar>
+        <StackPanel>
+        <Grid  Visibility="{Binding Path=ApplicationControlVisibility, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" FontWeight="Bold">Character(s):</Label>
+            <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=CharacterName, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Label Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right"  FontWeight="Bold">File(s):</Label>
+            <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Path=LogFileName, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Separator Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" />
+            <Label Grid.Column="0" Grid.Row="3" HorizontalAlignment="Right"  FontWeight="Bold">Auctions:</Label>
+            <Grid Grid.Column ="1" Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="25" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock  Background="Transparent" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Path=AuctionsThisSession, FallbackValue='78', Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                <Label Grid.Column="1" Grid.Row="0">Today</Label>
+                <TextBlock Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Path=AuctionsLifeTime, FallbackValue='1,234', Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel  Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
+                    <Label>Lifetime</Label>
+                </StackPanel>
+            </Grid>
+        </Grid>
+        <Grid Visibility="{Binding Path=DisabledWindowVisibility, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Margin="30,15,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="32" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Image Grid.Column="0"  Source="Images/warning32.png" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            <TextBlock Margin="10,0,0,0" Grid.Column="1" TextWrapping="Wrap" Text="{Binding  Path=DisabledMessage, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+        </Grid>
+        </StackPanel>
+    </DockPanel>
+</Window>
