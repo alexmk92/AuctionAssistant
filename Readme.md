@@ -1,11 +1,12 @@
 #P99 Auction House Assistant
--
-The P99 Auction House Assistant is the client side log reader that powers the auction house. 
+www.p99auctions.com
 
-This project has these dependencies:
+The P99 Auction House Assistant is the client side log reader that powers the auction house.  
+You can download the assistant at http://www.p99auctions.com/AuctionAssistant or compile it yourself.
 
-Log4Net: https://logging.apache.org/log4net/
-WPF Notify Icon: http://www.hardcodet.net/wpf-notifyicon
-JSON.NET: www.newtonsoft.com
-
-Cheers and good wishes!
+This project is dependent on:  
+* Log4Net: https://logging.apache.org/log4net/
+* WPF Notify Icon: http://www.hardcodet.net/wpf-notifyicon
+* JSON.NET: www.newtonsoft.com 
+ 
+Contact Us: support@p99auctions.com
