@@ -85,6 +85,10 @@
       <HintPath>packages\log4net.2.0.5\lib\net45-full\log4net.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.AspNet.SignalR.Client, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.AspNet.SignalR.Client.2.2.0\lib\net45\Microsoft.AspNet.SignalR.Client.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -113,11 +117,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="About.xaml.cs">
+      <DependentUpon>About.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\LoggerConfiguration.cs" />
+    <Compile Include="Interfaces\IAboutView.cs" />
+    <Compile Include="Models\WatchRestartResult.cs" />
     <Compile Include="Watchers\AuctionBatchEventArgs.cs" />
     <Compile Include="Watchers\AuctionLogFileEventArgs.cs" />
     <Compile Include="Watchers\AuctionMonitor.cs" />
-    <Compile Include="Watchers\AuctionQueue.cs" />
     <Compile Include="Watchers\AuctionReadEventArgs.cs" />
     <Compile Include="Balloons\BalloonMessage.cs" />
     <Compile Include="Balloons\AuctionAlertBalloon.xaml.cs">
@@ -130,13 +138,11 @@
     <Compile Include="Controllers\BalloonController.cs" />
     <Compile Include="Watchers\EQLogFolderWatcher.cs" />
     <Compile Include="Interfaces\IMessageMonitor.cs" />
-    <Compile Include="Interfaces\IAuctionQueue.cs" />
     <Compile Include="Interfaces\IBalloonMessage.cs" />
     <Compile Include="Interfaces\IBalloonController.cs" />
     <Compile Include="Interfaces\IDataDispatcher.cs" />
     <Compile Include="Interfaces\IIgnorableCharacterProvider.cs" />
     <Compile Include="Models\LoggingConstants.cs" />
-    <Compile Include="Watchers\MessageMonitor.cs" />
     <Compile Include="Watchers\MessageRecievedEventArgs.cs" />
     <Compile Include="Models\ActiveCharacter.cs" />
     <Compile Include="Helpers\ApplicationStatusMessage.cs" />
@@ -166,13 +172,14 @@
     <Compile Include="Utilities\IAutoQueueItem.cs" />
     <Compile Include="Utilities\ItemDequeuedEventHandler.cs" />
     <Compile Include="Web\AuctionServicesTransmissionEventArgs.cs" />
-    <Compile Include="Web\AuctionSubmissionPackage.cs" />
     <Compile Include="Web\ClientTrackerMessage.cs" />
-    <Compile Include="Web\DataDispatcher.cs" />
     <Compile Include="Web\DataDispatchResult.cs" />
     <Compile Include="Web\DispatcherStatus.cs" />
-    <Compile Include="Interfaces\ISubmissionPackage.cs" />
-    <Compile Include="Web\MessageRetrievalPackage.cs" />
+    <Compile Include="Web\SignalRDataDispatcher.cs" />
+    <Page Include="About.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Balloons\AuctionAlertBalloon.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -306,6 +313,10 @@
   <ItemGroup>
     <Resource Include="Images\Add.png" />
     <Resource Include="Images\Close.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include=".gitignore" />
+    <Resource Include="Images\auctionLarge.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

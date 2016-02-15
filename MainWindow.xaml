@@ -23,7 +23,7 @@
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_Online Help" Click="MenuHelpOnline_Click"/>
-                <MenuItem Header="_About"/>
+                <MenuItem Header="_About" Click="MenuAbout_Click"/>
             </MenuItem>
         </Menu>
         <StatusBar x:Name="stsMain" DockPanel.Dock="Bottom"  Visibility="{Binding Path=ApplicationControlVisibility, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
@@ -44,10 +44,6 @@
             </StatusBarItem>
             <StatusBarItem Grid.Column="1">
                 <TextBlock   Text="{Binding Path=StatusText, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
-            </StatusBarItem>
-            <Separator Grid.Column="2" Visibility="{Binding Path=ShowProgressBar, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
-            <StatusBarItem Grid.Column="3" Visibility="{Binding Path=ShowProgressBar, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Width="100" >
-                <ProgressBar IsIndeterminate="{Binding Path=ProgressInfinite, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Value="{Binding Path=ProgressValue, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Width="90" Height="16"  Minimum="0" Maximum="100" />
             </StatusBarItem>
         </StatusBar>
         <StackPanel>

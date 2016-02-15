@@ -28,5 +28,7 @@ namespace P99Auctions.Client.Watchers
         /// </summary>
         /// <value>The name of the file.</value>
         public string FileName { get; set; }
+
+        public bool Cancel { get; set; }
     }
 }

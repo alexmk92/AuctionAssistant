@@ -13,7 +13,7 @@ namespace P99Auctions.Client.Web
     /// <summary>
     ///     Class AuctionServicesTransmissionEventArgs.
     /// </summary>
-    public class AuctionDispatchEventArgs
+    public class DataDispatchEventArgs
     {
         /// <summary>
         ///     Gets or sets the message.
@@ -26,11 +26,5 @@ namespace P99Auctions.Client.Web
         /// </summary>
         /// <value>The code.</value>
         public DispatcherStatus Code { get; set; }
-
-        /// <summary>
-        ///     Gets or sets the percent complete. (0-100)
-        /// </summary>
-        /// <value>The percent complete.</value>
-        public int PercentComplete { get; set; }
     }
 }

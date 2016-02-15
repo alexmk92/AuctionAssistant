@@ -36,14 +36,14 @@ namespace P99Auctions.Client.Instancing
     public static class SingleInstance
     {
         static Mutex mutex;
+        static bool onlyInstance = false;
 
         /// <summary>
         /// Starts this instance.
         /// </summary>
-        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        /// <returns><c>true</c> if the application was successfully determined as the only instance, <c>false</c> otherwise.</returns>
         public static bool Start()
         {
-            bool onlyInstance = false;
             string mutexName = $"Local\\{ProgramInfo.AssemblyGuid}";
 
             // if you want your app to be limited to a single instance
@@ -54,9 +54,14 @@ namespace P99Auctions.Client.Instancing
             return onlyInstance;
         }
 
+        /// <summary>
+        /// Signals a stop in this single instance of the application, releasing the system hold if this was the first 
+        /// instance created (the originally opened exe).
+        /// </summary>
         public static void Stop()
         {
-            mutex.ReleaseMutex();
+            if(onlyInstance)
+                mutex?.ReleaseMutex();
         }
     }
 }

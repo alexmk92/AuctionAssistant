@@ -8,7 +8,9 @@
 // Last Update:  01/25/2016 10:02 PM
 // *************************************************************
 
+using System;
 using System.Threading.Tasks;
+using P99Auctions.Client.Watchers;
 using P99Auctions.Client.Web;
 
 namespace P99Auctions.Client.Interfaces
@@ -19,39 +21,54 @@ namespace P99Auctions.Client.Interfaces
     public interface IDataDispatcher
     {
         /// <summary>
-        ///     Occurs when dispatcher status changes states
+        /// Occurs when the status fo the dispatcher is changed
         /// </summary>
-        event AuctionDispatchEventHandler StatusChanged;
+        event EventHandler<DataDispatchEventArgs> StatusChanged;
+
+        event EventHandler<MessageRecievedEventArgs> MessageReceived;
+
 
         /// <summary>
-        /// A non-blocking call to dispatche the auction data.
+        /// Sends the auction line to the server
         /// </summary>
-        /// <param name="endPoint">The end point.</param>
-        /// <param name="submissionPackage">The submission package.</param>
-        /// <returns>Task&lt;DataDispatchResult&gt;.</returns>
-        Task<DataDispatchResult<T>> ExecuteWebRequest<T>(string endPoint, ISubmissionPackage submissionPackage) where T : class;
+        /// <param name="line">The line.</param>
+        void SendAuctionLine(string line);
 
         /// <summary>
-        /// Resets the dispatcher
+        /// Starts this instance, connecting to the server and waiting for information
         /// </summary>
-        void Reset();
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        bool Start();
 
         /// <summary>
-        /// Stops the dispatcher from communicating
+        /// Stops this instance, closing the connect
         /// </summary>
         void Stop();
 
         /// <summary>
-        /// Updates the client apikey this dispatcher will append to all outgoing requests
+        /// Resets this instance.
         /// </summary>
-        /// <param name="apiKey">The API key.</param>
-        void UpdateClientApikey(string apiKey);
-
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        bool Reset();
 
         /// <summary>
-        ///     Gets a value indicating whether this instance is enabled and can dispatch auction data
+        /// Gets or sets the account key to be transmitted with each request
+        /// </summary>
+        /// <value>The account key.</value>
+        string ApiKey { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is enabled and connected to the server
         /// </summary>
         /// <value><c>true</c> if this instance is enabled; otherwise, <c>false</c>.</value>
         bool IsEnabled { get; }
+
+        bool WatchingForMessages { get; }
+
+        /// <summary>
+        /// Ensures the dispatcher has been started, starts it if it was not already.
+        /// </summary>
+        bool EnsureStart(string apiKey);
+        
     }
 }
