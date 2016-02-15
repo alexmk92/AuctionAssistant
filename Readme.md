@@ -7,6 +7,7 @@ You can download the assistant at http://www.p99auctions.com/AuctionAssistant or
 This project is dependent on:  
 * Log4Net: https://logging.apache.org/log4net/
 * WPF Notify Icon: http://www.hardcodet.net/wpf-notifyicon
-* JSON.NET: www.newtonsoft.com 
+* JSON.NET: http://www.newtonsoft.com 
+* SignalR: http://www.asp.net/signalr
  
 Contact Us: support@p99auctions.com
