@@ -1,0 +1,16 @@
+﻿<Window x:Class="P99Auctions.Client.About"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:P99Auctions.Client"
+        mc:Ignorable="d"
+        Title="About: P99 Auction House Assistant" Height="222" Width="359" ShowInTaskbar="False" WindowStyle="ToolWindow">
+    <Grid Margin="0,0,0,14">
+        <Image x:Name="image" Source="Images/auctionLarge.png" HorizontalAlignment="Left" Height="45" Margin="15,15,0,0" VerticalAlignment="Top" Width="50"/>
+        <Label x:Name="label" Content="P99 Auction House Assistant" HorizontalAlignment="Left" Margin="80,15,0,0" VerticalAlignment="Top" FontWeight="Bold" />
+        <Label x:Name="txtVersion" Content="[Version]" HorizontalAlignment="Left" Margin="80,41,0,0" VerticalAlignment="Top" Height="25" Width="55"/>
+        <TextBlock x:Name="textBlock" Margin="15,81,21,0" TextWrapping="Wrap" Text="This software is open source and free to use. It is licensed under the GNU General Public License Version 3, June 29th, 2007 (GPL v3). For more details or to download the source code visit www.p99auctions.com." VerticalAlignment="Top" Height="44" FontSize="9"/>
+        <Button x:Name="button" Content="OK" HorizontalAlignment="Left" Height="32" Margin="255,136,0,0" VerticalAlignment="Top" Width="65" Click="button_Click"/>
+    </Grid>
+</Window>

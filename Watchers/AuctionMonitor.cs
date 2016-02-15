@@ -34,14 +34,17 @@ namespace P99Auctions.Client.Watchers
 
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="AuctionMonitor" /> class.
+        /// Initializes a new instance of the <see cref="AuctionMonitor" /> class.
         /// </summary>
-        /// <param name="clientLogger">The client logger.</param>
         /// <param name="fileName">The log file to watch</param>
-        /// <param name="secondsBeforeClose">
-        ///     The number of seconds that must elapse without a log entry before the log is
-        ///     considered 'closed' and monitoring stops.
-        /// </param>
+        /// <param name="secondsBeforeClose">The number of seconds that must elapse without a log entry before the log is
+        /// considered 'closed' and monitoring stops.</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidOperationException">
+        /// $Invalid or nonexistant file: {_fi.Name}
+        /// or
+        /// $Invalid P99 Blue log file format: {_fi.Name}
+        /// </exception>
         public AuctionMonitor(string fileName, int secondsBeforeClose = 10)
         {
             if (fileName == null) throw new ArgumentNullException(nameof(fileName));

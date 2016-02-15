@@ -47,7 +47,6 @@ namespace P99Auctions.Client.Models
             this.DisabledWindowVisibility = Visibility.Collapsed;
             this.UpdateStatusMessage(MessageSeverity.Informational, "-Unknown-");
             this.UpdateCharacterMonitorStatus(new ActiveCharacter[] {});
-            this.UpdateTransmissionStatus(null);
         }
 
         /// <summary>
@@ -99,26 +98,6 @@ namespace P99Auctions.Client.Models
         {
             this.AuctionsThisSession = this.FormatAuctionCountForDisplay(thisSession);
             this.AuctionsLifeTime = this.FormatAuctionCountForDisplay(lifeTime);
-        }
-
-        /// <summary>
-        ///     Updates the transmission status progress bar.
-        /// </summary>
-        /// <param name="percentComplete">The percentage to fill the progress bar (null to hide).</param>
-        public void UpdateTransmissionStatus(int? percentComplete)
-        {
-            this.ShowProgressBar = percentComplete.HasValue ? Visibility.Visible : Visibility.Collapsed;
-            if (percentComplete.HasValue)
-            {
-                this.ProgressInfinite = percentComplete <= 0;
-                if (percentComplete > 0)
-                {
-                    if (percentComplete > 100)
-                        percentComplete = 100;
-                    this.ProgressInfinite = false;
-                    this.ProgressValue = percentComplete.Value;
-                }
-            }
         }
 
 

@@ -36,27 +36,21 @@ namespace P99Auctions.Client.Controllers
         /// check flag for starting minimized in the tray
         /// </summary>
         public const string StartMinimizedArgumentFlag = "silent";
-
-        /// <summary>
-        /// Generic catch all error message
-        /// </summary>
-        private const string MessageCheckLog = "Error: Check Log for details";
-
+        
         /// <summary>
         /// Status message when scanning
         /// </summary>
         private const string MessageScanningForAuctions = "Scanning for new Auctions";
 
-        /// <summary>
-        /// Status message when idle
-        /// </summary>
+
+        private const string MessageUnableToConnect = "Unable to contact the P99 Auction Services, next scheduled attempt at {0}";
+
+        private const string MessageDisconnected = "You have been disconnected from the P99 Auction Services. Next reconnection attempt scheduled at {0}";
+
+    /// <summary>
+    /// Status message when idle
+    /// </summary>
         private const string MessageNoCharactersLoggedIn = "-Ready-";
-
-        /// <summary>
-        /// Default time to hold the client state before processing the next queued message
-        /// </summary>
-        private const int holdClientStateForXMilliseconds = 2000;
-
 
         /// <summary>
         /// A reference to global client settings 
@@ -87,12 +81,7 @@ namespace P99Auctions.Client.Controllers
         /// A global list of characters being watched by the various monitors
         /// </summary>
         private readonly ConcurrentDictionary<string, ActiveCharacter> dicCharactersBeingWatched = new ConcurrentDictionary<string, ActiveCharacter>();
-
-        /// <summary>
-        /// A refernece to teh auctions stored before being shipped to teh server
-        /// </summary>
-        private IAuctionQueue _auctionQueue;
-
+        
         /// <summary>
         /// the balloon sub controller
         /// </summary>
@@ -123,12 +112,7 @@ namespace P99Auctions.Client.Controllers
         /// The priamry WPF view when the app is not minimized
         /// </summary>
         private IMainView _mainView;
-
-        /// <summary>
-        /// An interface to the component that watches for new messages from the server
-        /// </summary>
-        private IMessageMonitor _messageMonitor;
-
+        
         /// <summary>
         /// The queued list messages that need to be displayed on the UI
         /// </summary>
@@ -151,15 +135,18 @@ namespace P99Auctions.Client.Controllers
         /// <param name="globalSettings">The global settings.</param>
         /// <param name="balloonController">The balloon controller.</param>
         /// <param name="logger">The logger.</param>
+        /// <param name="dataDispatcher">The data dispatcher.</param>
         /// <param name="viewResolver">The view resolver.</param>
-        /// <exception cref="System.ArgumentNullException">
+        /// <exception cref="ArgumentNullException">
         /// </exception>
-        public ClientController(IClientSettings clientSettings, IGlobalSettings globalSettings, IBalloonController balloonController, ILog logger, IViewResolver viewResolver)
+        /// <exception cref="System.ArgumentNullException"></exception>
+        public ClientController(IClientSettings clientSettings, IGlobalSettings globalSettings, IBalloonController balloonController, ILog logger, IDataDispatcher dataDispatcher, IViewResolver viewResolver)
         {
             if (clientSettings == null) throw new ArgumentNullException(nameof(clientSettings));
             if (globalSettings == null) throw new ArgumentNullException(nameof(globalSettings));
             if (balloonController == null) throw new ArgumentNullException(nameof(balloonController));
             if (logger == null) throw new ArgumentNullException(nameof(logger));
+            if (dataDispatcher == null) throw new ArgumentNullException(nameof(dataDispatcher));
             if (viewResolver == null) throw new ArgumentNullException(nameof(viewResolver));
 
             _balloonController = balloonController;
@@ -167,21 +154,22 @@ namespace P99Auctions.Client.Controllers
             _globalSettings = globalSettings;
             _viewResolver = viewResolver;
             _logger = logger;
-
+            _dataDispatcher = dataDispatcher;
+            
             //setup the view model for the notification window (sys tray)
             _notificationModel = new NotifyIconViewModel();
             _notificationModel.ExitApplication += this.MainWindow_CloseExplicit;
             _notificationModel.ShowAuctionTracker += this.NotificationView_ShowAuctionTracker;
 
-            //data Dispatcher
-            _dataDispatcher = new DataDispatcher(_logger, _globalSettings.DispatchRetryCount, _clientSettings.ApiKey, _globalSettings.ServiceUrlBase);
-            _messageMonitor = new MessageMonitor(_dataDispatcher, _globalSettings.ToastCheckInterval);
-            _messageMonitor.MessageReceived += this.MessageMonitor_MessageReceived;
+            //wire up the dispatcher
+            _dataDispatcher.MessageReceived += this.MessageMonitor_MessageReceived;
+            _dataDispatcher.StatusChanged += this.DataDispatcher_StatusChanged;
+
             //Primary window view model
             _trackerWindowModel = new MainWindowViewModel();
 
             //status message switcher
-            _uiMessageQueue = new UiMessageQueue(3000);
+            _uiMessageQueue = new UiMessageQueue(500);
             _uiMessageQueue.ActiveItemChanged += this.UiMessageQueue_ActiveItemChanged;
         }
 
@@ -208,20 +196,32 @@ namespace P99Auctions.Client.Controllers
                 }
             }
 
-            //hook the dispatcher for view updates
-            _dataDispatcher.StatusChanged += this.DataDispatcher_StatusChanged;
-
             _logger.Warn($"EQ Folder: {_clientSettings.EQFolder}");
-            this.RestartAuctionWatch();
 
-            _trackerWindowModel.UpdateTransmissionStatus(null);
-            _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
+            
+            //display totals from stored settings
             _trackerWindowModel.UpdateAuctionCounts(_clientSettings.TodayAuctionCount, _clientSettings.LifetimeAuctionCount);
 
-            //if the settings weren't valid and thus need to be fixed, show the app window 
-            //OR if they dont want it minimized 
+
+            //start the monitor for log changes
+            var started = this.RestartAuctionWatch();
+            if (!started.Successful)
+            {
+                var errorMessage = started.ErrorMessage;
+                if (string.IsNullOrWhiteSpace(errorMessage))
+                    errorMessage = "An unknown error occured trying to start the Auction Watcher.";
+                this.DisableApplication(errorMessage, started.TryAgainLater);
+                this.ShowApplicationWindow();
+                return;
+            }
+
+            //watcher ready set for "ready to watch"
+            _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
+
+
+            //if this is a slient startup (on windows start) or if the app is not allowed to be minimized
             //OR if ti was explicitly launched by the user (not via a windows startup process)
-            if (!clientSettingValid || !_clientSettings.MinimizeToTray || !silentStartup)
+            if (!_clientSettings.MinimizeToTray || !silentStartup)
                 this.ShowApplicationWindow();
         }
 
@@ -230,7 +230,7 @@ namespace P99Auctions.Client.Controllers
         /// </summary>
         public void CloseApplication()
         {
-            this.DisableApplication("Application shutting down", 0);
+            this.DisableApplication("Application shutting down",false);
         }
 
         /// <summary>
@@ -247,10 +247,11 @@ namespace P99Auctions.Client.Controllers
                 _mainView.EditSettings += this.MainWindow_EditSettings;
                 _mainView.ViewLog += this.MainWindow_ViewLog;
                 _mainView.Help += this.MainWindow_Help;
+                _mainView.About += this.MainView_About;
                 _mainView.Show();
             }
         }
-
+        
 
         /// <summary>
         /// Closes the application window
@@ -293,7 +294,7 @@ namespace P99Auctions.Client.Controllers
             if (key == null)
                 return;
 
-            Assembly startingExecutable = Assembly.GetExecutingAssembly();
+            var startingExecutable = Assembly.GetExecutingAssembly();
             var name = startingExecutable.GetName().Name;
 
             if (startWithWindows)
@@ -352,36 +353,35 @@ namespace P99Auctions.Client.Controllers
         }
 
         /// <summary>
-        ///     Restarts the auction watcher.
+        ///     Restarts the auction watcher and begins watching files on the local system. 
         /// </summary>
-        private void RestartAuctionWatch()
+        private WatchRestartResult RestartAuctionWatch()
         {
             _logger.Info($"Interface Status: {!_trackerWindowModel.IsDisabled}");
             if (_trackerWindowModel.IsDisabled)
-                return;
+                return  WatchRestartResult.Fail;
 
-            //start the data dispatcher for server/client communications
-            _dataDispatcher.UpdateClientApikey(_clientSettings.ApiKey);
-            _dataDispatcher.Reset();
-            if (_clientSettings.EnableToasts && !string.IsNullOrWhiteSpace(_clientSettings.ApiKey))
-                _messageMonitor.Start();
-            else
-                _messageMonitor.Stop();
+            //stop the file watcher if its started (so we can rebuild it with new settings set by the user if need be)
+            _watcher?.EndWatch();
+
+            //if an api key is defined start up the connect to the server immediately
+            if (!string.IsNullOrWhiteSpace(_clientSettings.ApiKey))
+            {
+                var dispatcherStarted = _dataDispatcher.EnsureStart(_clientSettings.ApiKey);
+                if (!dispatcherStarted)
+                {
+                    return new WatchRestartResult
+                    {
+                        ErrorMessage =  MessageUnableToConnect,
+                        Successful = false,
+                        TryAgainLater = true
+                    };
+                }
+            }
 
             //start processing the message queue
             _uiMessageQueue.Start();
             _logger.Info("UI Mesage Queue Started");
-
-            //stop the file watcher if its started (so we can rebuild it with new settings set by the user if need be)
-            if (_watcher != null && _watcher.ScanningEnabled)
-                _watcher.EndWatch();
-
-            //ensure eq Folder is set
-            if (string.IsNullOrWhiteSpace(_clientSettings.EQFolder))
-            {
-                _uiMessageQueue.QueueItem("No EQ Folder. Check File -> Settings.", MessageSeverity.Error, ActivityState.Error);
-                return;
-            }
 
             //rebuild the file watcher
             _watcher = new EQLogFolderWatcher(_clientSettings.EQFolder,
@@ -394,48 +394,58 @@ namespace P99Auctions.Client.Controllers
             _watcher.AuctionMonitorStarted += this.LogWatcher_AuctionMonitorStarted;
             _watcher.AuctionMonitorEnded += this.LogWatcher_AuctionMonitorEnded;
             _watcher.AuctionRead += this.LogWatcher_AuctionRead;
-
+            
             //start watching for log files changes
             var beginWatch = _watcher.BeginWatch();
-            if (beginWatch)
+            if (!beginWatch)
             {
-                //notify listeners of successful start
-                _logger.Info("Auction service initialized");
-                _logger.InfoFormat("API Key: {0}", string.IsNullOrWhiteSpace(_clientSettings.ApiKey) ? "-Not Set-" : _clientSettings.ApiKey);
-                _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
-                _trackerWindowModel.UpdateCharacterMonitorStatus(dicCharactersBeingWatched.Values);
-            }
-            else
-            {
-                //unable to monitor log files
-                //Error out and ask for update of file folder if needed (show settings window)
-                this.ShowApplicationWindow();
+                var strError = string.Empty;
                 if (!Directory.Exists(_watcher.LogFolder))
-                    _uiMessageQueue.QueueItem("Invalid Log Folder. Check Settings", MessageSeverity.Error, ActivityState.Error);
+                    strError = "Invalid Log Folder. Check Settings " + _watcher.LogFolder;
                 else
-                    _uiMessageQueue.QueueItem(MessageCheckLog, MessageSeverity.Error, ActivityState.Error);
+                    strError = "Unable to begin watching for log changes at " + _watcher.LogFolder;
+
+                _logger.Error(strError);
+                return new WatchRestartResult
+                {
+                    ErrorMessage = strError,
+                    Successful = false,
+                    TryAgainLater = false
+                };
             }
+
+            //notify listeners of successful start
+            _logger.Info("Auction service initialized");
+            _logger.InfoFormat("API Key: {0}", string.IsNullOrWhiteSpace(_clientSettings.ApiKey) ? "-Not Set-" : _clientSettings.ApiKey);
+            _trackerWindowModel.UpdateCharacterMonitorStatus(dicCharactersBeingWatched.Values);
+            _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
+            return WatchRestartResult.Success;
         }
 
         /// <summary>
-        ///     Disables the application entirely, stopping all application processes
+        /// Disables the application entirely, stopping all application processes
         /// </summary>
         /// <param name="errorMessage">The error message.</param>
-        /// <param name="numberOfMinsToLockFor">The number of mins to lock the app (0 = indefinite lock).</param>
-        private void DisableApplication(string errorMessage, int numberOfMinsToLockFor = 0)
+        /// <param name="allowReconnection">if set to <c>true</c> a reconnection attempt will be made in the specificed amount of time (global setting).</param>
+        private void DisableApplication(string errorMessage, bool allowReconnection)
         {
-            //try and flush the auction and message queues
-            _auctionQueue?.Flush();
+            DateTime? disableUntilLocal = null;
+
+            if (allowReconnection)
+            {
+                disableUntilLocal = DateTime.Now.AddMinutes(_globalSettings.DisabledCommunicationsInterval);
+                errorMessage = string.Format(errorMessage, disableUntilLocal.Value.ToShortTimeString());
+            }
+
+            //close down the UI message pump
             _uiMessageQueue?.Stop();
             _uiMessageQueue?.Flush();
 
             //stop server communications
-            _dataDispatcher.Stop();
-            _messageMonitor.Stop();
+            _dataDispatcher?.Stop();
 
             //ensure the file watcher is stopped 
-            if (_watcher != null && _watcher.ScanningEnabled)
-                _watcher.EndWatch();
+            _watcher?.EndWatch();
 
             //disable the display of the window data (auction counts) an display a "this is disabled" message
             _trackerWindowModel.Disable(errorMessage);
@@ -448,8 +458,11 @@ namespace P99Auctions.Client.Controllers
                 _disableTimer.Stop();
 
             //if we are locking for a set amount of time begin the count down
-            if (numberOfMinsToLockFor > 0)
+            if (disableUntilLocal.HasValue)
             {
+                var disableUntil = new DateTime(disableUntilLocal.Value.Year, disableUntilLocal.Value.Month, disableUntilLocal.Value.Day, disableUntilLocal.Value.Hour, disableUntilLocal.Value.Minute, 0);
+                var time = disableUntil.Subtract(DateTime.Now);
+
                 if (_disableTimer == null)
                 {
                     _disableTimer = new Timer();
@@ -458,9 +471,9 @@ namespace P99Auctions.Client.Controllers
                 if (_disableTimer.Enabled)
                     _disableTimer.Stop();
                 _disableTimer.AutoReset = false;
-                _disableTimer.Interval = numberOfMinsToLockFor*60*1000;
+                _disableTimer.Interval = time.TotalMilliseconds;
                 _disableTimer.Start();
-                _logger.Info($"Auction service will resume in {numberOfMinsToLockFor}min(s)");
+                _logger.Info($"Auction service will resume at {disableUntil.ToShortTimeString()}");
             }
         }
 
@@ -473,7 +486,19 @@ namespace P99Auctions.Client.Controllers
         private void DisableTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             _trackerWindowModel.Enable();
-            this.RestartAuctionWatch();
+            var result = this.RestartAuctionWatch();
+            if (!result.Successful)
+            {
+                var errorMessage = result.ErrorMessage;
+                if (string.IsNullOrWhiteSpace(errorMessage))
+                    errorMessage = "An unknown error occured trying to start the Auction Watcher.";
+                this.DisableApplication(errorMessage, result.TryAgainLater);
+            }
+            else
+            {
+                //watcher ready set for "ready to watch"
+                _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
+            }
         }
 
 
@@ -484,11 +509,8 @@ namespace P99Auctions.Client.Controllers
         /// <param name="e">The e.</param>
         private void UiMessageQueue_ActiveItemChanged(object o, AutoQueueEventArgs<ApplicationStatusMessage> e)
         {
-            //update the progress bar with the message
-            _trackerWindowModel.UpdateTransmissionStatus(e.Item.OperationPercentComplete);
-
             //update the status bar
-            if (e.Item.Severity.IsSet() && e.Item.MinimumShowTime >= holdClientStateForXMilliseconds)
+            if (e.Item.Severity.IsSet())
                 _trackerWindowModel.UpdateStatusMessage(e.Item.Severity, e.Item.Message);
 
             //system tray updates
@@ -503,33 +525,37 @@ namespace P99Auctions.Client.Controllers
         /// An event fired when the data dispatcher experiences a state change
         /// </summary>
         /// <param name="o">The o.</param>
-        /// <param name="e">The <see cref="P99Auctions.Client.Web.AuctionDispatchEventArgs" /> instance containing the event data.</param>
-        private void DataDispatcher_StatusChanged(object o, AuctionDispatchEventArgs e)
+        /// <param name="e">The <see cref="DataDispatchEventArgs"/> instance containing the event data.</param>
+        private void DataDispatcher_StatusChanged(object o, DataDispatchEventArgs e)
         {
             switch (e.Code)
             {
                 case DispatcherStatus.InvalidServiceAddress:
                 case DispatcherStatus.ConfigurationError:
-                    this.DisableApplication(e.Message);
+                    this.DisableApplication(e.Message,false);
                     break;
                 case DispatcherStatus.RetryFailure:
-                    this.DisableApplication($"Unable to contact the P99 Auction Services, next scheduled attempt at {DateTime.Now.AddMinutes(_globalSettings.DisabledCommunicationsInterval).ToShortTimeString()}", _globalSettings.DisabledCommunicationsInterval);
+                    this.DisableApplication(MessageUnableToConnect, true);
+                    break;
+                case DispatcherStatus.Disconnected:
+                    _uiMessageQueue.QueueItem(e.Message, MessageSeverity.Error, ActivityState.Error);
+                    this.DisableApplication(MessageDisconnected, true);
+                    break;
+                case DispatcherStatus.Closed:
+                    _uiMessageQueue.QueueItem(e.Message, MessageSeverity.Caution, ActivityState.Idle);
                     break;
                 case DispatcherStatus.Error:
-                case DispatcherStatus.Failure:
-                    _uiMessageQueue.QueueItem(e.Message, 5000, MessageSeverity.Error, ActivityState.Error);
+                    _uiMessageQueue.QueueItem(e.Message, MessageSeverity.Error, ActivityState.Error);
                     break;
                 case DispatcherStatus.Complete:
-                    _uiMessageQueue.QueueItem(e.Message, 2000, MessageSeverity.Success, ActivityState.Success, e.PercentComplete);
-                    _uiMessageQueue.QueueItem(dicCharactersBeingWatched.Count > 0 ? MessageScanningForAuctions : MessageNoCharactersLoggedIn, MessageSeverity.Success, ActivityState.Idle);
-                    break;
                 case DispatcherStatus.Idle:
                     _uiMessageQueue.QueueItem(dicCharactersBeingWatched.Count > 0 ? MessageScanningForAuctions : MessageNoCharactersLoggedIn, MessageSeverity.Success, ActivityState.Idle);
                     break;
                 case DispatcherStatus.Transmitting:
                 case DispatcherStatus.Connecting:
-                    _uiMessageQueue.QueueItem(e.Message, 1500, MessageSeverity.Caution, ActivityState.Transmitting, e.PercentComplete);
+                    _uiMessageQueue.QueueItem(e.Message, 1500, MessageSeverity.Caution, ActivityState.Transmitting);
                     break;
+                
             }
         }
 
@@ -556,8 +582,11 @@ namespace P99Auctions.Client.Controllers
             if (dicCharactersBeingWatched.TryRemove(e.CharacterName, out stats))
                 _trackerWindowModel.UpdateCharacterMonitorStatus(dicCharactersBeingWatched.Values);
 
-            if (dicCharactersBeingWatched.Count == 0)
+            if (dicCharactersBeingWatched.Count == 0 && !_dataDispatcher.WatchingForMessages)
+            {
+                _dataDispatcher.Stop();
                 _uiMessageQueue.QueueItem(MessageNoCharactersLoggedIn, MessageSeverity.Informational, ActivityState.Idle);
+            }
         }
 
         /// <summary>
@@ -575,8 +604,18 @@ namespace P99Auctions.Client.Controllers
             });
 
             if (addSuccess)
+            {
                 _trackerWindowModel.UpdateCharacterMonitorStatus(dicCharactersBeingWatched.Values);
-            _uiMessageQueue.QueueItem(MessageScanningForAuctions, MessageSeverity.Success, ActivityState.Idle);
+                var dispatcherStarted = _dataDispatcher.EnsureStart(_clientSettings.ApiKey);
+
+                if (!dispatcherStarted)
+                {
+                    this.DisableApplication(MessageUnableToConnect, true);
+                    e.Cancel = true;
+                }
+                else
+                    _uiMessageQueue.QueueItem(MessageScanningForAuctions, MessageSeverity.Success, ActivityState.Idle);
+            }
         }
 
         /// <summary>
@@ -594,12 +633,9 @@ namespace P99Auctions.Client.Controllers
             _uiMessageQueue.QueueItem("Enqueuing Auction", 300, activityState: ActivityState.AuctionFound);
             _uiMessageQueue.QueueItem(MessageScanningForAuctions, activityState: ActivityState.Idle);
 
-            //has the auction queue been created yet? if not do so
-            if (_auctionQueue == null)
-                _auctionQueue = new AuctionQueue(_dataDispatcher, _globalSettings.DispatchDelay, _globalSettings.MaxAuctionsPerBatch);
-
-            //queue the found auction for dispatch
-            _auctionQueue.EnqueueAuction(e.Line);
+            //send the line
+            if(_dataDispatcher.IsEnabled)
+                _dataDispatcher.SendAuctionLine(e.Line);
         }
 
 
@@ -610,18 +646,21 @@ namespace P99Auctions.Client.Controllers
         /// <param name="e">The <see cref="P99Auctions.Client.Watchers.MessageRecievedEventArgs" /> instance containing the event data.</param>
         private void MessageMonitor_MessageReceived(object sender, MessageRecievedEventArgs e)
         {
-            //create the alert 
-            var msg = new BalloonMessage
+            if (_clientSettings.EnableToasts)
             {
-                Message = e.Message.Message,
-                Title = e.Message.Title,
-                Url = e.Message.Url,
-                MessageColor = BalloonMessage.CreateColorFromMessageType(e.Message.MessageType),
-                ShowForMilliseconds = _clientSettings.ToastDisplayForSeconds*1000
-            };
+                //create the alert 
+                var msg = new BalloonMessage
+                {
+                    Message = e.Message.Message,
+                    Title = e.Message.Title,
+                    Url = e.Message.Url,
+                    MessageColor = BalloonMessage.CreateColorFromMessageType(e.Message.MessageType),
+                    ShowForMilliseconds = _clientSettings.ToastDisplayForSeconds*1000
+                };
 
-            //show the alert to the user
-            _balloonController.ShowBalloonMessage(msg);
+                //show the alert to the user
+                _balloonController.ShowBalloonMessage(msg);
+            }
         }
 
         /// <summary>
@@ -670,7 +709,7 @@ namespace P99Auctions.Client.Controllers
                 this.RestartAuctionWatch();
             }
             else
-                _logger.Error("Client Settings Update Failed");
+                _logger.Error("Client Settings Update Failed or was canceled");
         }
 
         /// <summary>
@@ -711,9 +750,20 @@ namespace P99Auctions.Client.Controllers
         /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
         private void MainWindow_Help(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start("http://www.p99auctions.com/Help");
+            Process.Start("http://www.p99auctions.com/Help");
         }
 
+        /// <summary>
+        /// Handles the launching of the about window
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void MainView_About(object sender, EventArgs e)
+        {
+            var aboutView = _viewResolver.CreateAboutView();
+            aboutView?.ShowDialog(_mainView);
+        }
 
         /// <summary>
         ///     Gets the client settings.

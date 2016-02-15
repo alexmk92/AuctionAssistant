@@ -18,6 +18,7 @@ using P99Auctions.Client.Helpers;
 using P99Auctions.Client.Instancing;
 using P99Auctions.Client.Interfaces;
 using P99Auctions.Client.Models;
+using P99Auctions.Client.Web;
 
 namespace P99Auctions.Client
 {
@@ -69,6 +70,9 @@ namespace P99Auctions.Client
 
             //client changable settings
             IClientSettings _clientSettings = ClientSettings.Load();
+           
+            //server communications 
+            IDataDispatcher dispatcher = new SignalRDataDispatcher(_logger, _clientSettings.ApiKey, _globalSettings.ServiceUrlBase,_globalSettings.DispatchRetryCount);
 
             //setup the logging utility
             try
@@ -77,7 +81,7 @@ namespace P99Auctions.Client
                 _balloonController = new BalloonHelper(notifyIcon);
                 //create the controller and start the application
 
-                _controller = new ClientController(_clientSettings, _globalSettings, _balloonController, _logger, this);
+                _controller = new ClientController(_clientSettings, _globalSettings, _balloonController, _logger, dispatcher,this);
                 _controller.ApplicationShutDownRequested += this.Controller_ApplicationShutDownRequested;
 
                 //wireup the notify icon
@@ -133,6 +137,15 @@ namespace P99Auctions.Client
         public ISettingsView CreateSettingsView()
         {
             return new Settings();
+        }
+
+        /// <summary>
+        /// Creates the about view.
+        /// </summary>
+        /// <returns>IAboutView.</returns>
+        public IAboutView CreateAboutView()
+        {
+            return new About();
         }
     }
 }

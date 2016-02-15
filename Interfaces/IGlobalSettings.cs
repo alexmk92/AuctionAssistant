@@ -52,7 +52,7 @@ namespace P99Auctions.Client.Interfaces
         int ToastCheckInterval { get; }
 
         /// <summary>
-        /// Gets the number of times before the dispatcher will cease attempting to try to connect 
+        /// Gets the number of times(lines) before the dispatcher will cease attempting to try to send data
         /// </summary>
         /// <value>The dispatch retry count.</value>
         int DispatchRetryCount { get; }
@@ -62,5 +62,11 @@ namespace P99Auctions.Client.Interfaces
         /// </summary>
         /// <value>The disabled communications interval.</value>
         int DisabledCommunicationsInterval { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to use a presistant connection or, if false, periodic polling
+        /// </summary>
+        /// <value><c>true</c> if [use presistant connection]; otherwise, <c>false</c>.</value>
+        bool UsePersistantConnection { get; }
     }
 }

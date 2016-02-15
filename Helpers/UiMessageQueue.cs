@@ -24,7 +24,7 @@ namespace P99Auctions.Client.Helpers
         /// <summary>
         ///     Initializes a new instance of the <see cref="UiMessageQueue" /> class.
         /// </summary>
-        /// <param name="minShowTime">The minimum a status message must remain as the active item.</param>
+        /// <param name="minShowTime">The minimum a status message must remain as the active item, in milliseconds.</param>
         public UiMessageQueue(int minShowTime)
         {
             _minShowTime = minShowTime;
@@ -32,34 +32,31 @@ namespace P99Auctions.Client.Helpers
 
 
         /// <summary>
-        ///     Queues the item.
+        /// Queues the item.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="severity">The severity.</param>
         /// <param name="activityState">State of the activity.</param>
-        /// <param name="operationPercentComplete">The operation percent complete.</param>
-        public void QueueItem(string message, MessageSeverity severity = MessageSeverity.NotSet, ActivityState activityState = ActivityState.NotSet, int? operationPercentComplete = null)
+        public void QueueItem(string message, MessageSeverity severity = MessageSeverity.NotSet, ActivityState activityState = ActivityState.NotSet)
         {
-            this.QueueItem(message, _minShowTime, severity, activityState, operationPercentComplete);
+            this.QueueItem(message, _minShowTime, severity, activityState);
         }
 
         /// <summary>
-        ///     Queues the item.
+        /// Queues the item.
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="minShowTime">The minimum show time.</param>
         /// <param name="severity">The severity.</param>
         /// <param name="activityState">State of the activity.</param>
-        /// <param name="operationPercentComplete">The operation percent complete.</param>
-        public void QueueItem(string message, int minShowTime, MessageSeverity severity = MessageSeverity.NotSet, ActivityState activityState = ActivityState.NotSet, int? operationPercentComplete = null)
+        public void QueueItem(string message, int minShowTime, MessageSeverity severity = MessageSeverity.NotSet, ActivityState activityState = ActivityState.NotSet)
         {
             base.QueueItem(new ApplicationStatusMessage
             {
                 Severity = severity,
                 ActivityState = activityState,
                 Message = message,
-                MinimumShowTime = minShowTime,
-                OperationPercentComplete = operationPercentComplete
+                MinimumShowTime = minShowTime
             });
         }
     }

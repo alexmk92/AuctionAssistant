@@ -208,11 +208,11 @@ namespace P99Auctions.Client.Models
 
                 int intInterval;
                 if (!int.TryParse(str, out intInterval))
+                    intInterval = 10;
+                if (intInterval > 20)
+                    intInterval = 20;
+                if (intInterval < 3)
                     intInterval = 3;
-                if (intInterval > 5)
-                    intInterval = 5;
-                if (intInterval < 0)
-                    intInterval = 0;
                 return intInterval;
             }
         }
@@ -238,12 +238,37 @@ namespace P99Auctions.Client.Models
 
                 int intInterval;
                 if (!int.TryParse(str, out intInterval))
-                    intInterval = 60;
+                    intInterval = 5;
                 if (intInterval > 60)
                     intInterval = 60;
-                if (intInterval < 3)
-                    intInterval = 3;
+                if (intInterval < 1)
+                    intInterval = 1;
                 return intInterval;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether to use a presistant connection or, if false, periodic polling
+        /// </summary>
+        /// <value><c>true</c> if [use presistant connection]; otherwise, <c>false</c>.</value>
+        public bool UsePersistantConnection
+        {
+            get
+            {
+                var str = "";
+                try
+                {
+                    str = ConfigurationManager.AppSettings["UsePersistantConnection"];
+                }
+                catch
+                {
+                }
+
+                bool blnCnn;
+                if (string.IsNullOrWhiteSpace(str) || !bool.TryParse(str, out blnCnn))
+                    blnCnn = true;
+                
+                return blnCnn;
             }
         }
     }

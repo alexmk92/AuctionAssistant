@@ -11,7 +11,7 @@
 namespace P99Auctions.Client.Interfaces
 {
     /// <summary>
-    /// Interface ISettingsView
+    /// Settings View Interface (for changing client changable settings)
     /// </summary>
     public interface ISettingsView
     {

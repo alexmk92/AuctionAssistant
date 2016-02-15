@@ -20,10 +20,11 @@ namespace P99Auctions.Client.Web
         Transmitting,
         Complete,
         Error,
-        Failure,
         RetryFailure,
         InvalidServiceAddress,
-        ConfigurationError
+        ConfigurationError,
+        Disconnected,
+        Closed
     }
 
     /// <summary>

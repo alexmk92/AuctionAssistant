@@ -93,6 +93,9 @@ namespace P99Auctions.Client.Watchers
                 FileName = monitor.File.Name
             };
             AuctionMonitorStarted?.Invoke(this, evtArgs);
+
+            if (evtArgs.Cancel)
+                this.EndWatch();
         }
 
         /// <summary>
@@ -252,7 +255,7 @@ namespace P99Auctions.Client.Watchers
             if (_fsw != null)
             {
                 _fsw.EnableRaisingEvents = false;
-                _fsw.Dispose();
+                _fsw?.Dispose();
                 _fsw = null;
             }
 

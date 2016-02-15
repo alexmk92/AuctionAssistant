@@ -26,5 +26,11 @@ namespace P99Auctions.Client.Interfaces
         /// </summary>
         /// <returns>ISettingsView.</returns>
         ISettingsView CreateSettingsView();
+
+        /// <summary>
+        /// Creates the about view.
+        /// </summary>
+        /// <returns>IAboutView.</returns>
+        IAboutView CreateAboutView();
     }
 }

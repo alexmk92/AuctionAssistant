@@ -24,6 +24,8 @@ namespace P99Auctions.Client.Interfaces
         event EventHandler ViewLog;
         event EventHandler Help;
 
+        event EventHandler About;
+
         /// <summary>
         /// Shows this instance.
         /// </summary>

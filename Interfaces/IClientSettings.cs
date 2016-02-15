@@ -83,7 +83,7 @@ namespace P99Auctions.Client.Interfaces
         /// </summary>
         /// <value><c>true</c> if [track state in system tray]; otherwise, <c>false</c>.</value>
         bool TrackStateInSystemTray { get; set; }
-
+        
         /// <summary>
         /// Gets the lifetime auction count.
         /// </summary>
